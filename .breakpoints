@@ -1,3 +1,18 @@
 {
-  "files": {}
+  "files": {
+    "src/main/java/JsonSync.java": [
+      {
+        "id": "e5902600-5a16-415f-8f84-bcd93211bb4c",
+        "line": 47,
+        "version": 854,
+        "index": 1569
+      },
+      {
+        "id": "54785660-ff36-4e06-8e2b-531f480748f6",
+        "line": 48,
+        "version": 854,
+        "index": 1602
+      }
+    ]
+  }
 }
