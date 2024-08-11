@@ -5,17 +5,17 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 
-public class JsonSync<T> {
+public class JSONSync<T> {
   final Gson gson;
   private final boolean keepOldValues;
 
   private T genericInstance;
 
-  public JsonSync(T defaultInstance) {
+  public JSONSync(T defaultInstance) {
     this.genericInstance = defaultInstance;
-    JsonConfig config = defaultInstance.getClass().getAnnotation(JsonConfig.class);
+    JSONConfig config = defaultInstance.getClass().getAnnotation(JSONConfig.class);
     if (config == null) {
-      throw new RuntimeException("No JsonConfig annotation found on class: " + defaultInstance.getClass().getName());
+      throw new RuntimeException("No JSONConfig annotation found on class: " + defaultInstance.getClass().getName());
     }
     GsonBuilder builder = new GsonBuilder();
     /*
@@ -41,7 +41,7 @@ public class JsonSync<T> {
   private T mergeValues(T instance, T newValues) {
     for (Field newField : newValues.getClass().getDeclaredFields()) {
       try {
-        if (newField.getType().equals(JsonSync.class))
+        if (newField.getType().equals(JSONSync.class))
           continue;
         if (newField.get(newValues) == null)
           continue;
@@ -60,24 +60,24 @@ public class JsonSync<T> {
   }
 
   @SuppressWarnings("unchecked")
-  public void loadJsonString(String json) {
+  public void loadJSONString(String JSON) {
     T oldGenericsInstance = (T) genericInstance;
-    genericInstance = gson.fromJson(json, (Class<T>) genericInstance.getClass());
+    genericInstance = gson.fromJson(JSON, (Class<T>) genericInstance.getClass());
     if (keepOldValues) {
       genericInstance = mergeValues(oldGenericsInstance, genericInstance);
     }
   }
 
-  public void loadJsonFile(String fileName) throws Exception {
-    loadJsonString(readFileAsString(fileName));
+  public void loadJSONFile(String fileName) throws Exception {
+    loadJSONString(readFileAsString(fileName));
   }
 
-  public String getJsonString() {
-    return gson.toJson(genericInstance);
+  public String getJSONString() {
+    return gson.toJSON(genericInstance);
   }
 
-  public void saveJsonFile(String fileName) throws Exception {
-    writeFile(fileName, gson.toJson(genericInstance));
+  public void saveJSONFile(String fileName) throws Exception {
+    writeFile(fileName, gson.toJSON(genericInstance));
   }
 
   private static String readFileAsString(String fileName) throws Exception {

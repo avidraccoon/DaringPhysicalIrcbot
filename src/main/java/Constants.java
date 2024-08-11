@@ -1,8 +1,8 @@
 
-@JsonConfig(keepOldValuesWhenNotPresent = true)
+@JSONConfig(keepOldValuesWhenNotPresent = true)
 public class Constants {
 
-  public static final JsonSync<Constants> configInstance = new JsonSync<Constants>(new Constants());
+  public static final JSONSync<Constants> configInstance = new JSONSync<Constants>(new Constants());
 
   public static Constants getInstance() {
     return configInstance.getInstance();

@@ -5,7 +5,7 @@ import com.google.gson.LongSerializationPolicy;
 import com.google.gson.ToNumberPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
-public @interface JsonConfig {
+public @interface JSONConfig {
   boolean serializeNulls() default true;
 
   boolean prettyPrinting() default true;
