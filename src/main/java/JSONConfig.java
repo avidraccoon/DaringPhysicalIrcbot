@@ -11,7 +11,7 @@ public @interface JSONConfig {
   boolean prettyPrinting() default true;
 
   boolean excludeFieldsWithoutExposeAnnotation() default false;
-/*
+
   FieldNamingPolicy namingPolicy() default FieldNamingPolicy.IDENTITY;
 
   ToNumberPolicy numberToNumberPolicy() default ToNumberPolicy.DOUBLE;
@@ -19,6 +19,8 @@ public @interface JSONConfig {
   ToNumberPolicy objectToNumberPolicy() default ToNumberPolicy.LAZILY_PARSED_NUMBER;
 
   LongSerializationPolicy longSerializationPolicy() default LongSerializationPolicy.DEFAULT;
-*/
+
   boolean keepOldValuesWhenNotPresent() default false;
+
+  boolean autoReload() default false;
 }

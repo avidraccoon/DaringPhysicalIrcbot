@@ -1,15 +1,68 @@
 import com.google.gson.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.*;
 
 public class JSONSync<T> {
   final Gson gson;
   private final boolean keepOldValues;
-
+  private ArrayList<Timer> timers = new ArrayList<Timer>();
   private T genericInstance;
+
+  class JSONSyncTask extends TimerTask {
+
+    String filePath = "";
+    JSONSync updateInstance;
+    int hash = -1;
+
+    public JSONSyncTask(String path, JSONSync instance) {
+      filePath = path;
+      updateInstance = instance;
+    }
+
+    public void run() {
+      try {
+        int hash = FileIO.readFileAsString(filePath).hashCode();
+        if (this.hash == hash)
+          return;
+        updateInstance.loadJSONFile(filePath);
+        System.out.println("Updated");
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  public Timer autoSyncFromFile(String path, int period) {
+    return autoSyncFromFile(path, 0, period);
+  }
+
+  public Timer autoSyncFromFile(String path, int delay, int period) {
+    Timer newTimer = new Timer();
+    newTimer.scheduleAtFixedRate(new JSONSyncTask(path, this), delay, period);
+    timers.add(newTimer);
+    return newTimer;
+  }
+
+  public void stopTimer(Timer timer) {
+    timer.cancel();
+    timers.remove(timer);
+  }
+
+  public void StopAllTimers() {
+    for (Timer t : timers) {
+      t.cancel();
+    }
+    timers.clear();
+  }
+
+  public boolean doAutoReload() {
+    JSONConfig config = genericInstance.getClass().getAnnotation(JSONConfig.class);
+    if (config == null) {
+      throw new RuntimeException("No JSONConfig annotation found on class: " + genericInstance.getClass().getName());
+    }
+    return config.autoReload();
+  }
 
   public JSONSync(T defaultInstance) {
     this.genericInstance = defaultInstance;
@@ -17,15 +70,13 @@ public class JSONSync<T> {
     if (config == null) {
       throw new RuntimeException("No JSONConfig annotation found on class: " + defaultInstance.getClass().getName());
     }
-    GsonBuilder builder = new GsonBuilder();
-    /*
-     * .setNumberToNumberStrategy(config.numberToNumberPolicy())
-     * .setObjectToNumberStrategy(config.objectToNumberPolicy())
-     * .setLongSerializationPolicy(config.longSerializationPolicy())
-     * .setFieldNamingPolicy(config.namingPolicy());
-     * if (config.excludeFieldsWithoutExposeAnnotation())
-     * builder.excludeFieldsWithoutExposeAnnotation();
-     */
+    GsonBuilder builder = new GsonBuilder()
+        .setNumberToNumberStrategy(config.numberToNumberPolicy())
+        .setObjectToNumberStrategy(config.objectToNumberPolicy())
+        .setLongSerializationPolicy(config.longSerializationPolicy())
+        .setFieldNamingPolicy(config.namingPolicy());
+    if (config.excludeFieldsWithoutExposeAnnotation())
+      builder.excludeFieldsWithoutExposeAnnotation();
     if (config.prettyPrinting())
       builder.setPrettyPrinting();
     if (config.serializeNulls())
@@ -69,7 +120,7 @@ public class JSONSync<T> {
   }
 
   public void loadJSONFile(String fileName) throws Exception {
-    loadJSONString(readFileAsString(fileName));
+    loadJSONString(FileIO.readFileAsString(fileName));
   }
 
   public String getJSONString() {
@@ -77,21 +128,6 @@ public class JSONSync<T> {
   }
 
   public void saveJSONFile(String fileName) throws Exception {
-    writeFile(fileName, gson.toJson(genericInstance));
-  }
-
-  private static String readFileAsString(String fileName) throws Exception {
-    String data = "";
-    data = new String(Files.readAllBytes(Paths.get(fileName)));
-    return data;
-  }
-
-  private void writeFile(String fileName, String data) throws Exception {
-    File file = new File(fileName);
-    file.getParentFile().mkdirs();
-    file.createNewFile();
-    FileWriter writer = new FileWriter(file);
-    writer.write(data);
-    writer.close();
+    FileIO.writeFile(fileName, gson.toJson(genericInstance));
   }
 }
