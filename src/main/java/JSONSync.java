@@ -73,11 +73,11 @@ public class JSONSync<T> {
   }
 
   public String getJSONString() {
-    return gson.toJSON(genericInstance);
+    return gson.toJson(genericInstance);
   }
 
   public void saveJSONFile(String fileName) throws Exception {
-    writeFile(fileName, gson.toJSON(genericInstance));
+    writeFile(fileName, gson.toJson(genericInstance));
   }
 
   private static String readFileAsString(String fileName) throws Exception {
