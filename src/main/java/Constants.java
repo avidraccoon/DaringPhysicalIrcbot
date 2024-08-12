@@ -8,16 +8,14 @@ public class Constants {
     return syncInstance.getInstance();
   }
 
-  public final Double minRotation;
-  public final Double pi;
-  public final Double maxRotation;
-  public final Double[] testing;
+  public Double minRotation;
+  public Double pi;
+  public Double maxRotation;
 
   private Constants() {
     pi = null;
     minRotation = null;
     maxRotation = null;
-    testing = new Double[3];
   }
 
 }

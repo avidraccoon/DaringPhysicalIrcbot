@@ -1,5 +1,5 @@
 {
-  "minRotation": -45.0,
+  "minRotation": -15.0,
   "pi": 3.1415,
-  "maxRotation": 40.0
+  "maxRotation": 15.0
 }
