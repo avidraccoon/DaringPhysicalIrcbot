@@ -1,13 +1,9 @@
 
 public class Main {
-
-  public static GenericConfigGUI gui = GenericConfigGUI.openGui(Constants.getInstance(), "src/main/resources/constants.json");
-;
   
   public static void main(String[] args) throws Exception {
     Constants.syncInstance.loadJSONFile("src/main/resources/constants.json");
-    //Constants.syncInstance.autoSyncFromFile("src/main/resources/constants.json", 2000);
-    gui.update();
+    Constants.syncInstance.autoSyncFromFile("src/main/resources/constants.json", 2000);
   }
 
   public static void printConstants(int hash) {

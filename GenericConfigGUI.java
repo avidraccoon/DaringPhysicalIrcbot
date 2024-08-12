@@ -1,5 +1,5 @@
 import javax.swing.*;
-
+import java.util.List;
 import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
 
 import java.awt.*;
@@ -7,10 +7,12 @@ import java.awt.event.*;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 
 public class GenericConfigGUI {
-  private Object configObject;
+  private AbstractJSONSynced configObject;
   private Map<String, JTextField> fieldTextFields = new HashMap<>();
+  private Map<String, JList> listFields = new HashMap<>();
   private JFrame frame;
   private JPanel mainPanel;
   private JButton saveButton;
@@ -32,15 +34,23 @@ public class GenericConfigGUI {
   public void addField(String fieldName){
     try {
       Field field = configObject.getClass().getDeclaredField(fieldName);
-      if (field.get(configObject) != null && field.getType().equals(JSONSync.class)) return; 
-      Object fieldValue = field.get(configObject);
-      String labelText = fieldName + ":"; // Create label with field name only
-      JLabel fieldLabel = new JLabel(labelText);
-      mainPanel.add(fieldLabel); // Add label to panel
-      JTextField textField = new JTextField(String.valueOf(fieldValue)); // Create TextField with initial value
-      fieldTextFields.put(fieldName, textField); // Store TextField for later reference
-      mainPanel.add(textField);
+      if (field.get(configObject) != null && field.getType().equals(JSONSync.class)) return;
       mainPanel.remove(saveButton);
+      if (field.getType().equals(List.class)) {
+        // Handle lists:
+        List<?> listValue = (List<?>) field.get(configObject);
+        JList list = new JList(listValue.toArray());
+        listFields.put(fieldName, list);
+        mainPanel.add(new JLabel(fieldName + ":"));
+        mainPanel.add(list);
+      } else {
+        // Handle primitive fields as before
+        Object fieldValue = field.get(configObject);
+        JTextField textField = new JTextField(String.valueOf(fieldValue));
+        fieldTextFields.put(fieldName, textField);
+        mainPanel.add(new JLabel(fieldName + ":"));
+        mainPanel.add(textField);
+      }
       mainPanel.add(saveButton);
       //update();
       frame.setVisible(false);
@@ -71,7 +81,7 @@ public class GenericConfigGUI {
   }
 
   public void update(){
-    this.configObject = ((Constants)this.configObject).getInstance();
+    this.configObject = this.configObject.getAbstractInstance();
     SwingUtilities.invokeLater(() -> {
         updateFields(); 
     });
@@ -91,7 +101,7 @@ public class GenericConfigGUI {
     }
   }
   
-  public GenericConfigGUI(Object configObject, String filePath) {
+  public GenericConfigGUI(AbstractJSONSynced configObject, String filePath) {
     this.configObject = configObject;
     this.filePath = filePath;
     frame = new JFrame("Configuration Editor 2.0");
@@ -128,6 +138,20 @@ public class GenericConfigGUI {
     frame.setVisible(true);
   }
 
+  public void updateLists() {
+      for (Map.Entry<String, JList> entry : listFields.entrySet()) {
+          String fieldName = entry.getKey();
+          try {
+              Field field = configObject.getClass().getDeclaredField(fieldName);
+              field.setAccessible(true);
+              List<?> listValue = (List<?>) field.get(configObject);
+              entry.getValue().setListData(listValue.toArray());
+          } catch (NoSuchFieldException | IllegalAccessException e) {
+              System.err.println("Error updating list for field: " + fieldName);
+          }
+      }
+  }
+
   public void actionPerformed(ActionEvent e) {
     try {
       // Update fields in the configObject
@@ -140,6 +164,18 @@ public class GenericConfigGUI {
         handleType(field, fieldValueString);
 
       }
+      for (Map.Entry<String, JList> entry : listFields.entrySet()) {
+          String fieldName = entry.getKey();
+          Field field = configObject.getClass().getDeclaredField(fieldName);
+          field.setAccessible(true);
+          // Get selected values from the JList
+          List<Object> selectedValues = new ArrayList<>();
+          for (Object selectedItem : entry.getValue().getSelectedValuesList()) {
+              selectedValues.add(selectedItem);
+          }
+          // Set the updated list in the configObject
+          field.set(configObject, selectedValues);
+      }
       Constants.syncInstance.saveJSONFile(this.filePath);
 
       JOptionPane.showMessageDialog(frame, "Configuration saved successfully!");
@@ -151,7 +187,7 @@ public class GenericConfigGUI {
     }
   }
 
-  public static GenericConfigGUI openGui(Object configObject, String filePath) {
+  public static GenericConfigGUI openGui(AbstractJSONSynced configObject, String filePath) {
     return new GenericConfigGUI(configObject, filePath);
   }
   

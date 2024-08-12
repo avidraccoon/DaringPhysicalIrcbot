@@ -3,7 +3,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.*;
 
-public class JSONSync<T> {
+public class JSONSync<T extends AbstractJSONSynced> {
   final Gson gson;
   private final boolean keepOldValues;
   private ArrayList<Timer> timers = new ArrayList<Timer>();
