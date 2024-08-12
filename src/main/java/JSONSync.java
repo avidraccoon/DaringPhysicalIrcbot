@@ -1,13 +1,32 @@
 import com.google.gson.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.*;
 
 public class JSONSync<T extends AbstractJSONSynced> {
   final Gson gson;
   private final boolean keepOldValues;
+  private final boolean updatingInstance;
   private ArrayList<Timer> timers = new ArrayList<Timer>();
-  private T genericInstance;
+  private AbstractJSONSynced[] instances;
+
+  @SuppressWarnings("unchecked")
+  public T getInstance() {
+    return (T) instances[0];
+  }
+
+  @SuppressWarnings("unchecked")
+  public T getUpdatingInstance() {
+    return (T) instances[(updatingInstance) ? 1 : 0];
+  }
+
+  private void setInstance(T instance){
+    instances[0] = instance;
+    if (updatingInstance){
+      setValues(getUpdatingInstance(), instance);
+    }
+  }
 
   class JSONSyncTask extends TimerTask {
 
@@ -26,7 +45,8 @@ public class JSONSync<T extends AbstractJSONSynced> {
         if (this.hash == hash)
           return;
         updateInstance.loadJSONFile(filePath);
-        System.out.println("Updated");
+        this.hash = hash;
+        System.out.println("Updated " + hash);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -57,19 +77,21 @@ public class JSONSync<T extends AbstractJSONSynced> {
   }
 
   public boolean doAutoReload() {
-    JSONConfig config = genericInstance.getClass().getAnnotation(JSONConfig.class);
+    JSONConfig config = getInstance().getClass().getAnnotation(JSONConfig.class);
     if (config == null) {
-      throw new RuntimeException("No JSONConfig annotation found on class: " + genericInstance.getClass().getName());
+      throw new RuntimeException("No JSONConfig annotation found on class: " + getInstance().getClass().getName());
     }
     return config.autoReload();
   }
 
   public JSONSync(T defaultInstance) {
-    this.genericInstance = defaultInstance;
     JSONConfig config = defaultInstance.getClass().getAnnotation(JSONConfig.class);
     if (config == null) {
       throw new RuntimeException("No JSONConfig annotation found on class: " + defaultInstance.getClass().getName());
     }
+    updatingInstance = config.updatingInstance();
+    instances = new AbstractJSONSynced[(updatingInstance)? 2 : 1];
+    this.instances[0] = defaultInstance;
     GsonBuilder builder = new GsonBuilder()
         .setNumberToNumberStrategy(config.numberToNumberPolicy())
         .setObjectToNumberStrategy(config.objectToNumberPolicy())
@@ -83,10 +105,6 @@ public class JSONSync<T extends AbstractJSONSynced> {
       builder.serializeNulls();
     keepOldValues = config.keepOldValuesWhenNotPresent();
     gson = builder.create();
-  }
-
-  public T getInstance() {
-    return genericInstance;
   }
 
   private T mergeValues(T instance, T newValues) {
@@ -110,24 +128,46 @@ public class JSONSync<T extends AbstractJSONSynced> {
     return instance;
   }
 
-  @SuppressWarnings("unchecked")
-  public void loadJSONString(String JSON) {
-    T oldGenericsInstance = (T) genericInstance;
-    genericInstance = gson.fromJson(JSON, (Class<T>) genericInstance.getClass());
-    if (keepOldValues) {
-      genericInstance = mergeValues(oldGenericsInstance, genericInstance);
+  private void setValues(T instance, T newValues){
+    for (Field newField : newValues.getClass().getDeclaredFields()) {
+      try {
+        if (newField.getType().equals(JSONSync.class))
+          continue;
+        Field field = instance.getClass().getDeclaredField(newField.getName());
+        field.setAccessible(true);
+        field.set(instance, newField.get(newValues));
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(
+            "Unable to set field: " + newField.getName() + " on instance: " + instance.getClass().getName());
+      } catch (NoSuchFieldException e) {
+        throw new RuntimeException(
+            "Unable to find field: " + newField.getName() + " on instance: " + instance.getClass().getName());
+      }
     }
   }
 
-  public void loadJSONFile(String fileName) throws Exception {
+  
+
+  @SuppressWarnings("unchecked")
+  public void loadJSONString(String JSON) {
+    T oldGenericsInstance = getInstance();
+    T tempInstance = gson.fromJson(JSON, (Class<T>) getInstance().getClass());
+    if (keepOldValues) {
+      setInstance(mergeValues(tempInstance, oldGenericsInstance));
+      return;
+    }
+    setInstance(tempInstance);
+  }
+
+  public void loadJSONFile(String fileName) {
     loadJSONString(FileIO.readFileAsString(fileName));
   }
 
   public String getJSONString() {
-    return gson.toJson(genericInstance);
+    return gson.toJson(getInstance());
   }
 
-  public void saveJSONFile(String fileName) throws Exception {
-    FileIO.writeFile(fileName, gson.toJson(genericInstance));
+  public void saveJSONFile(String fileName) {
+    FileIO.writeFile(fileName, gson.toJson(getInstance()));
   }
 }

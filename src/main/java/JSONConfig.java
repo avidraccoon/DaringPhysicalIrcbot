@@ -23,4 +23,6 @@ public @interface JSONConfig {
   boolean keepOldValuesWhenNotPresent() default false;
 
   boolean autoReload() default false;
+
+  boolean updatingInstance() default false;
 }

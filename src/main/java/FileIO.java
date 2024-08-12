@@ -4,10 +4,14 @@ import java.io.*;
 
 public class FileIO{
 
-  public static String readFileAsString(String fileName) throws Exception{
-    String data = "";
-    data = new String(Files.readAllBytes(Paths.get(fileName)));
-    return data;
+  public static String readFileAsString(String fileName){
+    try {
+      String data = "";
+      data = new String(Files.readAllBytes(Paths.get(fileName)));
+      return data;
+    }catch (IOException e){
+      throw new RuntimeException("Unable to read file: " + fileName, e);
+    }
   }
 
   public static void writeFile(String path, String data){
