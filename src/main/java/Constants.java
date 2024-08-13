@@ -17,7 +17,7 @@ public class Constants extends AbstractJSONSynced {
   }
 
   public final Double minRotation;
-  public final Double pi;
+  public Double pi;
   public final Double maxRotation;
   public final Transformation transformation;
 

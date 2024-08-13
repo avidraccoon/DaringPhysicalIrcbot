@@ -1,14 +1,18 @@
 import java.lang.reflect.*;
 import java.util.*;
+import java.lang.*;
 
 public class TestingUtils{
 
+  public static Scanner scan = new Scanner(System.in);
+  public static String selectedField = "";
   public static ArrayList<Object> antiLoop = new ArrayList<Object>();
   public static void printObject(Object object){
     StatTextBuilder builder = new StatTextBuilder(30, 15);
     builder.setTitle(object.getClass().getName());
     printObject(object, "", builder);
     System.out.println(builder.getText());
+    antiLoop.clear();
   }
 
   public static void printObject(Object object, String prefix, StatTextBuilder builder) {
@@ -154,18 +158,95 @@ public class TestingUtils{
       for (int i = 0; i < lines; i++){
         String nameLine = (nameLines.length > i)? nameLines[i] : "";
         String statLine = (statLines.length > i)? statLines[i] : "";
-        builder.append("|");
+        builder.append((name.equals(selectedField))? ">" : "|");
         builder.append(rightPad(nameLine, nameLength));
         builder.append(" | ");
         builder.append(leftPad(statLine, lineLength-nameLength-3));
-        builder.append("|");
+        builder.append((name.equals(selectedField))? "<" : "|");
         builder.append("\n");
       }
+  
     }
 
     public String getText(){
       builder.append(wrap(repeat(lineLength, "-"), "|"));
       return builder.toString();
     }
+  }
+
+  public static void clear(){
+    System.out.print("\033[H\033[2J");  
+    System.out.flush();
+  }
+
+  public static void selectOption(Object object){
+    boolean running = true;
+    while (running){
+      System.out.println("Select a action (1)edit a field, (2)display data, (3)exit");
+      String input = scan.nextLine();
+      if (input.equals("1")){
+        selectField(object);
+      }else if (input.equals("2")){
+        clear();
+        printObject(object);
+      }else if (input.equals("3")){
+        running = false;
+      }else{
+        System.out.println("Invalid input");
+      }
+    }
+  }
+  
+  public static void selectField(Object object){
+    clear();
+    printObject(object);
+    System.out.println("Select field to edit: ");
+    selectedField = scan.nextLine();
+    clear();
+    printObject(object);
+    System.out.println("Confirm selected line enter (y) to continue or (n) to quit a go back to main menu: ");
+    String input;
+    while (!(input = scan.nextLine()).equals("y") && !input.equals("n")){
+      System.out.println("Invalid input, try again: ");
+    }
+    if (input.equals("n")){
+      selectedField = "";
+      return;
+    }
+    try{
+      String[] list = selectedField.substring(1).split("[.]");
+      Object current = object;
+      Field field = current.getClass().getDeclaredField(list[0]);
+      for (int i = 1; i<list.length; i++){
+        current = field.get(current);
+        field = current.getClass().getDeclaredField(list[i]);
+      }
+      System.out.println("Please input a "+ field.getType().getSimpleName() +": ");
+      field.setAccessible(true);
+      if (field.getType().equals(String.class)){
+        field.set(current, scan.nextLine());
+      }else if (field.getType().equals(Integer.class)){
+        field.set(current, Integer.parseInt(scan.nextLine()));
+      }else if (field.getType().equals(Double.class)){
+        field.set(current, Double.valueOf(scan.nextLine()));
+      }else if (field.getType().equals(Float.class)){
+        field.set(current, Float.parseFloat(scan.nextLine()));
+      }else if (field.getType().equals(Long.class)){
+        field.set(current, Long.parseLong(scan.nextLine()));
+      }else if (field.getType().equals(Short.class)){
+        field.set(current, Short.parseShort(scan.nextLine()));
+      }else if (field.getType().equals(Byte.class)){
+        field.set(current, Byte.parseByte(scan.nextLine()));
+      }else if (field.getType().equals(Boolean.class)){
+        field.set(current, Boolean.parseBoolean(scan.nextLine()));
+      }else if (field.getType().equals(Character.class)){
+        field.set(current, scan.nextLine().charAt(0));
+      }
+      System.out.println(field.getType().getName());
+    }catch (Exception e){
+      e.printStackTrace();
+      System.out.println("Invalid input");
+    }
+    selectedField = "";
   }
 }
